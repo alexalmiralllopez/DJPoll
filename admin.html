@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panell DJ - Control de Votació</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1a1a2e;
+      color: #fff;
+      padding: 30px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: #16213e;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0 15px 0;
+      border-radius: 5px;
+      border: 1px solid #0f3460;
+      box-sizing: border-box;
+      background: #0f3460;
+      color: white;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-save { background-color: #e94560; color: white; width: 100%; }
+    .btn-reset { background-color: #ff9f43; color: white; margin-top: 10px; }
+    .result-bar {
+      height: 30px;
+      background: #333;
+      border-radius: 15px;
+      overflow: hidden;
+      display: flex;
+      margin-top: 10px;
+    }
+    .bar-a { background: #ff4757; width: 50%; transition: width 0.3s; }
+    .bar-b { background: #2ed573; width: 50%; transition: width 0.3s; }
+    .counts { display: flex; justify-content: space-between; margin-top: 10px; font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+
+  <h1>🎧 Panell de Control DJ</h1>
+
+  <!-- Configuració -->
+  <div class="card">
+    <h2>Configurar Nova Votació</h2>
+    <label>Títol / Pregunta:</label>
+    <input type="text" id="input-title" value="Quina volen que sigui la pròxima?">
+
+    <label>Opció A (Vermell):</label>
+    <input type="text" id="input-a" value="Techno 90s">
+
+    <label>Opció B (Verd):</label>
+    <input type="text" id="input-b" value="Reggaeton Antic">
+
+    <button class="btn-save" onclick="actualitzarVotacio()">Llançar Votació / Reiniciar Vots</button>
+  </div>
+
+  <!-- Resultats en directe -->
+  <div class="card">
+    <h2>Resultats en Temps Real</h2>
+    <div class="counts">
+      <span id="label-a">Opció A: 0</span>
+      <span id="label-b">Opció B: 0</span>
+    </div>
+
+    <div class="result-bar">
+      <div id="bar-a" class="bar-a"></div>
+      <div id="bar-b" class="bar-b"></div>
+    </div>
+
+    <p id="total-votes">Total vots: 0</p>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    // ⚠️ MATEIXA CONFIGURACIÓ QUE A VOTAR.HTML
+    const firebaseConfig = {
+      apiKey: "EL_TEU_API_KEY",
+      authDomain: "EL_TEU_PROJECTE.firebaseapp.com",
+      databaseURL: "https://EL_TEU_PROJECTE-default-rtdb.firebaseio.com",
+      projectId: "EL_TEU_PROJECTE",
+      storageBucket: "EL_TEU_PROJECTE.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Actualitza les opcions i posa el comptador a 0
+    function actualitzarVotacio() {
+      db.ref('votacio_actual').set({
+        títol: document.getElementById('input-title').value,
+        textA: document.getElementById('input-a').value,
+        textB: document.getElementById('input-b').value,
+        opcioA: 0,
+        opcioB: 0
+      });
+    }
+
+    // Escolta els vots en temps real per dibuixar el gràfic
+    db.ref('votacio_actual').on('value', (snapshot) => {
+      const data = snapshot.val() || { opcioA: 0, opcioB: 0, textA: 'A', textB: 'B' };
+      const votsA = data.opcioA || 0;
+      const votsB = data.opcioB || 0;
+      const total = votsA + votsB;
+
+      document.getElementById('label-a').innerText = `${data.textA}: ${votsA}`;
+      document.getElementById('label-b').innerText = `${data.textB}: ${votsB}`;
+      document.getElementById('total-votes').innerText = `Total vots: ${total}`;
+
+      let pctA = total > 0 ? (votsA / total) * 100 : 50;
+      let pctB = total > 0 ? (votsB / total) * 100 : 50;
+
+      document.getElementById('bar-a').style.width = pctA + '%';
+      document.getElementById('bar-b').style.width = pctB + '%';
+    });
+  </script>
+</body>
+</html>
