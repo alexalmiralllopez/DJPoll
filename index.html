@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta property="og:title" content="The Groovin S-election" />
   <meta property="og:description" content="Select your groove" />
-  <meta property="og:image" content="https://www.groovinaround.com/logocolor.png" />
+  <meta property="og:image" content="https:/dj.groovinaround.com/logocolor.png" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:url" content="https://dj.groovinaround.com/" />
   <meta property="og:type" content="website" />
@@ -24,7 +24,12 @@
       padding: 20px;
       box-sizing: border-box;
     }
-    h1 { margin-bottom: 5px; text-align: center; font-size: 1.8rem; }
+   h1 { margin-bottom: 5px;
+  text-align: center;
+  /* La font s'adapta de manera fluida entre 1.1rem i 1.8rem segons la pantalla */
+  font-size: clamp(1.1rem, 5.2vw, 1.8rem);
+  white-space: nowrap; /* Impedeix estrictament que el text salti de línia */
+  width: 100%;}
     h2 { color: #aaa; font-weight: normal; margin-bottom: 25px; text-align: center; font-size: 1.2rem; }
     
     .container {
