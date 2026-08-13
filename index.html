@@ -23,31 +23,32 @@
     
     .container {
       width: 100%;
-      max-width: 400px;
+      max-width: 450px;
     }
 
-    /* Estils dels Botons de Votació */
     .btn-container {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 12px;
     }
-    button {
-      padding: 22px;
-      font-size: 1.3rem;
+    
+    .vote-btn {
+      padding: 18px;
+      font-size: 1.2rem;
       font-weight: bold;
       border: none;
       border-radius: 12px;
       cursor: pointer;
+      color: white;
       transition: transform 0.1s, opacity 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    button:active { transform: scale(0.98); }
-    .btn-a { background-color: #ff4757; color: white; }
-    .btn-b { background-color: #2ed573; color: white; }
+    .vote-btn:active { transform: scale(0.98); }
 
     /* Estils de la Secció de Resultats */
     .results-container {
-      display: none; /* Amagat per defecte */
+      display: none;
       background-color: #1e1e1e;
       padding: 20px;
       border-radius: 12px;
@@ -61,22 +62,21 @@
       justify-content: space-between;
       margin-bottom: 5px;
       font-weight: bold;
+      font-size: 0.95rem;
     }
     .progress-bar-bg {
       background-color: #333;
-      height: 25px;
-      border-radius: 12px;
+      height: 22px;
+      border-radius: 10px;
       overflow: hidden;
     }
     .progress-bar-fill {
       height: 100%;
       width: 0%;
       transition: width 0.4s ease;
-      border-radius: 12px;
+      border-radius: 10px;
     }
-    .fill-a { background-color: #ff4757; }
-    .fill-b { background-color: #2ed573; }
-    
+
     .total-votes {
       text-align: center;
       color: #888;
@@ -95,49 +95,29 @@
 <body>
 
   <div class="container">
-    <h1>🎧 The Groovin Around Afterparty</h1>
+    <h1>🎧 GROOVIN' AROUND</h1>
     <h2 id="poll-title">Carregant la pregunta...</h2>
 
-    <!-- OPCIÓ 1: BOTO DE VOTACIÓ -->
+    <!-- SECCIÓ DE BOTONS -->
     <div id="voting-section" class="btn-container">
-      <button class="btn-a" id="btn-a" onclick="votar('opcioA')">Opció A</button>
-      <button class="btn-b" id="btn-b" onclick="votar('opcioB')">Opció B</button>
+      <!-- Els botons es generen dinàmicament des de JS -->
     </div>
 
-    <!-- OPCIÓ 2: RESULTATS EN TEMPS REAL (es mostra en votar) -->
+    <!-- SECCIÓ DE RESULTATS -->
     <div id="results-section" class="results-container">
-      <div class="voted-badge">✓ Gràcies per votar! Resultats en directe:</div>
-      
-      <div class="result-row">
-        <div class="label-container">
-          <span id="res-text-a">Opció A</span>
-          <span id="res-pct-a">0%</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div id="bar-a" class="progress-bar-fill fill-a"></div>
-        </div>
+      <div class="voted-badge">✓ Vot registrat! Resultats en directe:</div>
+      <div id="results-list">
+        <!-- Les barres de resultats es generen dinàmicament -->
       </div>
-
-      <div class="result-row">
-        <div class="label-container">
-          <span id="res-text-b">Opció B</span>
-          <span id="res-pct-b">0%</span>
-        </div>
-        <div class="progress-bar-bg">
-          <div id="bar-b" class="progress-bar-fill fill-b"></div>
-        </div>
-      </div>
-
       <div class="total-votes" id="total-count">Total de vots: 0</div>
     </div>
   </div>
 
-  <!-- Scripts Oficials de Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // ⚠️ REEMPLAÇA AMB LES TEVES DADES DE FIREBASE
+    // ⚠️ MANTÉN LES TEVES DADES REALS DE FIREBASE AQUÍ
     const firebaseConfig = {
     apiKey: "AIzaSyDyxTM2WDDmSehjjchRtcWrfVG_aQ1Dg_0",
     authDomain: "groovinpd.firebaseapp.com",
@@ -147,66 +127,87 @@
     messagingSenderId: "621205305903",
     appId: "1:621205305903:web:603a6234295bbf92f7a4da",
     measurementId: "G-P6F9JGEPHF"
+
+
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Paleta de colors atractiva per a fins a 5 opcions
+    const colors = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#9b59b6'];
+
     let hasVoted = false;
     let currentPollId = "";
 
-    // Escolta canvis a la base de dades en TEMPS REAL
     db.ref('votacio_actual').on('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
 
-      // Generem una clave única per saber si el DJ ha canviat la pregunta
-      const newPollId = `${data.títol}_${data.textA}_${data.textB}`;
+      const options = data.opcions || [];
+      const votes = data.vots || [];
+      
+      // Identificador de la votació actual
+      const newPollId = `${data.títol}_${options.join('_')}`;
 
-      // Si el DJ ha posat una nova pregunta/cançons, demanem vot de nou
       if (currentPollId !== newPollId) {
         currentPollId = newPollId;
         hasVoted = localStorage.getItem('voted_poll') === currentPollId;
       }
 
-      // Actualitzar Textos
-      document.getElementById('poll-title').innerText = data.títol || 'Vota la pròxima cançó:';
-      document.getElementById('btn-a').innerText = data.textA || 'Opció A';
-      document.getElementById('btn-b').innerText = data.textB || 'Opció B';
-      document.getElementById('res-text-a').innerText = data.textA || 'Opció A';
-      document.getElementById('res-text-b').innerText = data.textB || 'Opció B';
+      document.getElementById('poll-title').innerText = data.títol || 'Tria la música:';
 
-      // Calcular Percentatges
-      const votsA = data.opcioA || 0;
-      const votsB = data.opcioB || 0;
-      const total = votsA + votsB;
+      // Calcular total de vots
+      const totalVotes = votes.reduce((a, b) => a + (b || 0), 0);
 
-      const pctA = total > 0 ? Math.round((votsA / total) * 100) : 0;
-      const pctB = total > 0 ? Math.round((votsB / total) * 100) : 0;
+      // Renderitzar Botons
+      const votingSec = document.getElementById('voting-section');
+      votingSec.innerHTML = '';
+      options.forEach((optText, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'vote-btn';
+        btn.style.backgroundColor = colors[index % colors.length];
+        btn.innerText = optText;
+        btn.onclick = () => votar(index);
+        votingSec.appendChild(btn);
+      });
 
-      // Actualitzar la interfície de resultats
-      document.getElementById('bar-a').style.width = pctA + '%';
-      document.getElementById('bar-b').style.width = pctB + '%';
-      document.getElementById('res-pct-a').innerText = `${pctA}% (${votsA})`;
-      document.getElementById('res-pct-b').innerText = `${pctB}% (${votsB})`;
-      document.getElementById('total-count').innerText = `Total de vots registrats: ${total}`;
+      // Renderitzar Resultats
+      const resultsList = document.getElementById('results-list');
+      resultsList.innerHTML = '';
+      options.forEach((optText, index) => {
+        const optVotes = votes[index] || 0;
+        const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
 
-      // Decidir quina vista mostrar
+        const row = document.createElement('div');
+        row.className = 'result-row';
+        row.innerHTML = `
+          <div class="label-container">
+            <span>${optText}</span>
+            <span>${pct}% (${optVotes})</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: ${pct}%; background-color: ${colors[index % colors.length]}"></div>
+          </div>
+        `;
+        resultsList.appendChild(row);
+      });
+
+      document.getElementById('total-count').innerText = `Total de vots registrats: ${totalVotes}`;
+
       toggleViews();
     });
 
-    // Funció per enviar el vot a Firebase
-    function votar(opcio) {
-      db.ref('votacio_actual/' + opcio).transaction((currentVotes) => {
+    function votar(index) {
+      db.ref(`votacio_actual/vots/${index}`).transaction((currentVotes) => {
         return (currentVotes || 0) + 1;
       }).then(() => {
         hasVoted = true;
-        localStorage.setItem('voted_poll', currentPollId); // Guardem que ja ha votat aquesta ronda
+        localStorage.setItem('voted_poll', currentPollId);
         toggleViews();
       });
     }
 
-    // Mostra o amaga els resultats segons si l'usuari ja ha votat
     function toggleViews() {
       const votingSec = document.getElementById('voting-section');
       const resultsSec = document.getElementById('results-section');
