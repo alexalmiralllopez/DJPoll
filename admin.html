@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panell DJ - Control de Votació</title>
+  <title>Admin S-election</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #1a1a2e;
       color: #fff;
-      padding: 30px;
+      padding: 20px;
       max-width: 600px;
       margin: 0 auto;
     }
@@ -19,10 +19,11 @@
       border-radius: 10px;
       margin-bottom: 20px;
     }
+    label { font-size: 0.9rem; color: #ccc; }
     input {
       width: 100%;
       padding: 10px;
-      margin: 8px 0 15px 0;
+      margin: 5px 0 12px 0;
       border-radius: 5px;
       border: 1px solid #0f3460;
       box-sizing: border-box;
@@ -30,68 +31,61 @@
       color: white;
     }
     button {
-      padding: 12px 20px;
+      padding: 14px 20px;
       border: none;
       border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 1rem;
     }
-    .btn-save { background-color: #e94560; color: white; width: 100%; }
-    .btn-reset { background-color: #ff9f43; color: white; margin-top: 10px; }
-    .result-bar {
-      height: 30px;
-      background: #333;
-      border-radius: 15px;
-      overflow: hidden;
-      display: flex;
-      margin-top: 10px;
-    }
-    .bar-a { background: #ff4757; width: 50%; transition: width 0.3s; }
-    .bar-b { background: #2ed573; width: 50%; transition: width 0.3s; }
-    .counts { display: flex; justify-content: space-between; margin-top: 10px; font-size: 1.2rem; }
+    .btn-save { background-color: #e94560; color: white; width: 100%; margin-top: 10px; }
+    
+    .result-row { margin-bottom: 12px; }
+    .label-container { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .progress-bar-bg { background-color: #0f3460; height: 18px; border-radius: 9px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; transition: width 0.3s; border-radius: 9px; }
   </style>
 </head>
 <body>
 
-  <h1>🎧 Panell de Control DJ</h1>
+  <h1>🎧 Panell de Control</h1>
 
   <!-- Configuració -->
   <div class="card">
-    <h2>Configurar Nova Votació</h2>
+    <h2>Configurar Votació (2 a 5 opcions)</h2>
     <label>Títol / Pregunta:</label>
-    <input type="text" id="input-title" value="Què voleu ballar?">
+    <input type="text" id="input-title" value="Què vols ballar?">
 
-    <label>Opció A (Vermell):</label>
-    <input type="text" id="input-a" value="">
+    <label>Opció 1 (Imprescindible):</label>
+    <input type="text" id="opt-0" value="">
 
-    <label>Opció B (Verd):</label>
-    <input type="text" id="input-b" value="">
+    <label>Opció 2 (Imprescindible):</label>
+    <input type="text" id="opt-1" value="">
 
-    <button class="btn-save" onclick="actualitzarVotacio()">Llançar Votació / Reiniciar Vots</button>
+    <label>Opció 3 (Opcional):</label>
+    <input type="text" id="opt-2" value="">
+
+    <label>Opció 4 (Opcional):</label>
+    <input type="text" id="opt-3" value="">
+
+    <label>Opció 5 (Opcional):</label>
+    <input type="text" id="opt-4" value="">
+
+    <button class="btn-save" onclick="actualitzarVotacio()">🚀 Llançar Votació / Reiniciar</button>
   </div>
 
-  <!-- Resultats en directe -->
+  <!-- Resultats DJ -->
   <div class="card">
-    <h2>Resultats en Temps Real</h2>
-    <div class="counts">
-      <span id="label-a">Opció A: 0</span>
-      <span id="label-b">Opció B: 0</span>
-    </div>
-
-    <div class="result-bar">
-      <div id="bar-a" class="bar-a"></div>
-      <div id="bar-b" class="bar-b"></div>
-    </div>
-
-    <p id="total-votes">Total vots: 0</p>
+    <h2>Resultats en temps real</h2>
+    <div id="admin-results"></div>
+    <p id="total-votes" style="text-align: center; color: #aaa; margin-top: 15px;">Total vots: 0</p>
   </div>
 
-  <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <script>
-    // ⚠️ MATEIXA CONFIGURACIÓ QUE A VOTAR.HTML
+    // ⚠️ MANTÉN LES TEVES DADES REALS DE FIREBASE AQUÍ
     const firebaseConfig = {
     apiKey: "AIzaSyDyxTM2WDDmSehjjchRtcWrfVG_aQ1Dg_0",
     authDomain: "groovinpd.firebaseapp.com",
@@ -106,33 +100,65 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Actualitza les opcions i posa el comptador a 0
+    const colors = ['#ff4757', '#2ed573', '#1e90ff', '#ffa502', '#9b59b6'];
+
     function actualitzarVotacio() {
+      const titol = document.getElementById('input-title').value;
+      const opcions = [];
+
+      for (let i = 0; i < 5; i++) {
+        const val = document.getElementById(`opt-${i}`).value.trim();
+        if (val !== "") {
+          opcions.push(val);
+        }
+      }
+
+      if (opcions.length < 2) {
+        alert("Posa com a mínim 2 opcions!");
+        return;
+      }
+
+      // Inicialitzar vots a 0 per a cada opció vàlida
+      const votsIniciais = new Array(opcions.length).fill(0);
+
       db.ref('votacio_actual').set({
-        títol: document.getElementById('input-title').value,
-        textA: document.getElementById('input-a').value,
-        textB: document.getElementById('input-b').value,
-        opcioA: 0,
-        opcioB: 0
+        títol: titol,
+        opcions: opcions,
+        vots: votsIniciais
       });
     }
 
-    // Escolta els vots en temps real per dibuixar el gràfic
+    // Escolta de resultats des del panell d'administració
     db.ref('votacio_actual').on('value', (snapshot) => {
-      const data = snapshot.val() || { opcioA: 0, opcioB: 0, textA: 'A', textB: 'B' };
-      const votsA = data.opcioA || 0;
-      const votsB = data.opcioB || 0;
-      const total = votsA + votsB;
+      const data = snapshot.val();
+      if (!data) return;
 
-      document.getElementById('label-a').innerText = `${data.textA}: ${votsA}`;
-      document.getElementById('label-b').innerText = `${data.textB}: ${votsB}`;
-      document.getElementById('total-votes').innerText = `Total vots: ${total}`;
+      const opcions = data.opcions || [];
+      const vots = data.vots || [];
+      const total = vots.reduce((a, b) => a + (b || 0), 0);
 
-      let pctA = total > 0 ? (votsA / total) * 100 : 50;
-      let pctB = total > 0 ? (votsB / total) * 100 : 50;
+      const adminResults = document.getElementById('admin-results');
+      adminResults.innerHTML = '';
 
-      document.getElementById('bar-a').style.width = pctA + '%';
-      document.getElementById('bar-b').style.width = pctB + '%';
+      opcions.forEach((optText, index) => {
+        const count = vots[index] || 0;
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+        const row = document.createElement('div');
+        row.className = 'result-row';
+        row.innerHTML = `
+          <div class="label-container">
+            <span><strong>${optText}</strong></span>
+            <span>${pct}% (${count} vots)</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: ${pct}%; background-color: ${colors[index % colors.length]}"></div>
+          </div>
+        `;
+        adminResults.appendChild(row);
+      });
+
+      document.getElementById('total-votes').innerText = `Total vots registrats: ${total}`;
     });
   </script>
 </body>
